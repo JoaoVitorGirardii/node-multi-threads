@@ -1,11 +1,12 @@
 import { parentPort, threadId } from "node:worker_threads"
 
 parentPort?.once('message', ({from, to}) => {
-    console.time(`benchamark-thread-id[${threadId}]`)
+    const startTime = performance.now()
     let count = 0
     for (let i=from; i < to; i++ ) {
         count++
     }
-    console.timeEnd(`benchamark-thread-id[${threadId}]`)
-    parentPort?.postMessage(`I'm threadId[${threadId}] finish! with ${count} items`)
+    const endTime = performance.now()
+    console.log(`benchamark-thread-id[${threadId}] - ${(endTime - startTime).toFixed(2)}ms - ${new Date().toLocaleTimeString("pt-BR", {hour12: false})}`)
+    parentPort?.postMessage(count)
 })

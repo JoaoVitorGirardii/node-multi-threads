@@ -4,6 +4,7 @@ import { Worker, threadId } from "node:worker_threads";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename)
+const INTERATIONS_PER_TASK = 2e9
 
 function createThread(payload: {from: number, to: number}) {
     const worker = new Worker(path.resolve(__dirname,'./thread.js'))
@@ -18,35 +19,40 @@ function createThread(payload: {from: number, to: number}) {
     return promise 
 }
 
-function createInSequence() {
-    console.time(`benchamark-base[1e9] thredId[${threadId}] inSequence`)
+function createInSequence(from: number, to: number) {
+    const startTime = performance.now()
     let count=0
-    for(let i=0; i<1e9; i++){ count++ }
-    console.timeEnd(`benchamark-base[1e9] thredId[${threadId}] inSequence`)
+    for(let i = from; i < to; i++){ count++ }
+    const endTime = performance.now()
+    console.log(`benchamark-thread-id[[${threadId}] - ${(endTime - startTime).toFixed(2)}ms - ${new Date().toLocaleTimeString("pt-BR", {hour12: false})}`)
+    return count
 }
 
-console.time("benchamark-base[1e9] single thread")
-await Promise.all([
-    createInSequence(),
-    createInSequence(),
-    createInSequence(),
-    createInSequence(),
-    createInSequence(),
+const startTimeSingle = performance.now()
+const totalSingle = await Promise.all([
+    createInSequence(0, INTERATIONS_PER_TASK),
+    createInSequence(0, INTERATIONS_PER_TASK),
+    createInSequence(0, INTERATIONS_PER_TASK),
+    createInSequence(0, INTERATIONS_PER_TASK),
+    createInSequence(0, INTERATIONS_PER_TASK),
 ])
+const endTimeSingle = performance.now()
 console.log("===================================")
-console.timeEnd("benchamark-base[1e9] single thread")
-console.log("total de itens processados em uma thread: ", (1e9 * 5).toLocaleString())
+console.log(`single thread: ${(endTimeSingle - startTimeSingle).toFixed(2)}ms`)
+console.log("Itens processados: ", (totalSingle.reduce((acc: number, val:any) => acc + val, 0)).toLocaleString())
 console.log("===================================")
+console.log("")
 
-console.time("benchamark-[1e9] mult threads")
-await Promise.all([
-    createThread({ from: 0, to: 1e9 }),
-    createThread({ from: 0, to: 1e9 }),
-    createThread({ from: 0, to: 1e9 }),
-    createThread({ from: 0, to: 1e9 }),
-    createThread({ from: 0, to: 1e9 }),
+const startTimeMult = performance.now()
+const totalMult = await Promise.all([
+    createThread({ from: 0, to: INTERATIONS_PER_TASK }),
+    createThread({ from: 0, to: INTERATIONS_PER_TASK }),
+    createThread({ from: 0, to: INTERATIONS_PER_TASK }),
+    createThread({ from: 0, to: INTERATIONS_PER_TASK }),
+    createThread({ from: 0, to: INTERATIONS_PER_TASK }),
 ])
+const endTimeMult = performance.now()
 console.log("===================================")
-console.timeEnd("benchamark-[1e9] mult threads")
-console.log("total de itens processados em paralelo: ", (1e9 * 5).toLocaleString())
+console.log(`mult threads: ${(endTimeMult - startTimeMult).toFixed(2)}ms`)
+console.log("Itens processados: ", (totalMult.reduce((acc: number, val:any) => acc + val, 0)).toLocaleString())
 console.log("===================================")
